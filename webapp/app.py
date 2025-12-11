@@ -150,14 +150,26 @@ def get_gex_data_json(ticker='SPX', target_date=None):
     
     print(f"API Key (first 4): {API_KEY[:4]}...")
     
-    # Get Price
+    # Get Price and VIX
+    vix = None
     try:
+        # Fetch ticker and VIX separately for better reliability
         r = requests.get(f"{base_url}/markets/quotes", params={'symbols': ticker}, headers=headers)
         if r.status_code != 200:
             print(f"Error fetching price: Status {r.status_code} - {r.text}")
             return None
         price = r.json()['quotes']['quote']['last']
         print(f"Price: {price}")
+        
+        # Try to fetch VIX
+        try:
+            vix_r = requests.get(f"{base_url}/markets/quotes", params={'symbols': 'VIX'}, headers=headers)
+            if vix_r.status_code == 200:
+                vix = vix_r.json()['quotes']['quote']['last']
+                print(f"VIX: {vix}")
+        except Exception as vix_e:
+            print(f"VIX fetch failed (non-critical): {vix_e}")
+            
     except Exception as e:
         print(f"Exception fetching price: {e}")
         return None
@@ -477,6 +489,7 @@ def get_gex_data_json(ticker='SPX', target_date=None):
     result_data = {
         'ticker': ticker,
         'price': price,
+        'vix': vix if vix else 0,
         'expiry': expiry,
         'total_gex': total_gex,
         'call_wall': call_wall,

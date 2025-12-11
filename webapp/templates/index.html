@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=39"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=44"></script>
 </head>
 
 <body>
@@ -116,6 +116,8 @@
                         style="color: #00ccff; font-weight: bold;">--</span></div>
                 <div style="margin-bottom: 5px;">P/C Ratio: <span id="val-pc-ratio"
                         style="color: #eaeaea; font-weight: bold;">--</span></div>
+                <div style="margin-bottom: 5px;">VIX: <span id="val-vix"
+                        style="color: #ff6699; font-weight: bold;">--</span></div>
                 <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
                     <div>Env: <span id="val-regime" style="color: #eaeaea;">--</span></div>
                     <div id="val-regime-note"
@@ -177,6 +179,16 @@
                         Context</div>
                     <div id="ai-context" style="color: #aaa; font-size: 0.85rem; line-height: 1.4; font-style: italic;">
                         --</div>
+            </div>
+        
+            <!-- Market News Panel -->
+            <div class="panel" style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.1), rgba(204, 82, 0, 0.1)); border: 1px solid #ff6600; margin-top: 20px;">
+                <h3 style="margin: 0 0 10px 0; color: #ff9933; font-size: 1rem; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+                    <span>📰</span> Market News
+                </h3>
+                
+                <div id="news-container" style="max-height: 350px; overflow-y: auto; padding-right: 5px;">
+                    <div style="color: #888; font-size: 0.85rem; font-style: italic;">Loading news...</div>
                 </div>
             </div>
         </aside>

@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let refreshInterval;
     let previousPrice = null;
     let previousSignal = null;
+    let previousGEX = null; // Track GEX for regime shift alerts
     let alertsEnabled = true;
     let speechEnabled = false; // Disabled speech alerts
     let wallProximityThreshold = 10; // points
@@ -394,6 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
             pcEl.style.color = color;
         }
 
+        // VIX Display
+        if (data.vix) {
+            document.getElementById('val-vix').innerText = data.vix.toFixed(2);
+        }
+
         // AI Analysis
         if (data.ai_analysis) {
             const ai = data.ai_analysis;
@@ -403,6 +409,34 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('ai-rr').innerText = ai.risk_reward || '--';
             document.getElementById('ai-context').innerText = ai.context || '--';
         }
+
+        // GEX Regime Shift Alert
+        if (previousGEX !== null && data.total_gex !== undefined) {
+            const wasPositive = previousGEX > 0;
+            const isPositive = data.total_gex > 0;
+
+            // Detect regime shift
+            if (wasPositive !== isPositive && alertsEnabled) {
+                const shiftType = isPositive ? 'POSITIVE' : 'NEGATIVE';
+                const shiftColor = isPositive ? 'buy' : 'sell';
+                const emoji = isPositive ? '📈' : '📉';
+
+                const banner = document.getElementById('trade-alert-banner');
+                const message = document.getElementById('alert-message');
+
+                message.innerText = `${emoji} GEX REGIME SHIFT to ${shiftType} (${data.total_gex.toFixed(2)}B)`;
+                banner.className = `trade-alert-banner ${shiftColor}`;
+                banner.style.display = 'block';
+
+                // Browser notification
+                notify(`GEX Shift: ${shiftType}`, `Total GEX shifted to ${data.total_gex.toFixed(2)}B`);
+
+                console.log(`🔔 GEX Regime Shift: ${previousGEX.toFixed(2)}B → ${data.total_gex.toFixed(2)}B`);
+            }
+        }
+
+        // Update previous GEX
+        previousGEX = data.total_gex;
 
         // Chart Data (Bar)
         // Chart Data (Bar)
@@ -492,6 +526,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Fetch Market News
+    async function fetchMarketNews() {
+        try {
+            // Using free NewsAPI (you can replace with any news API)
+            const response = await fetch('https://newsapi.org/v2/everything?q=S%26P%20500%20OR%20SPX%20OR%20stock%20market&sortBy=publishedAt&pageSize=5&apiKey=demo');
+            const data = await response.json();
+
+            const newsContainer = document.getElementById('news-container');
+
+            if (data.articles && data.articles.length > 0) {
+                newsContainer.innerHTML = data.articles.map(article => `
+                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                        <a href="${article.url}" target="_blank" style="color: #00e5ff; text-decoration: none; font-size: 0.9rem; font-weight: 500; line-height: 1.3; display: block; margin-bottom: 5px;">
+                            ${article.title}
+                        </a>
+                        <div style="color: #888; font-size: 0.75rem;">
+                            ${article.source.name} • ${new Date(article.publishedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                newsContainer.innerHTML = '<div style="color: #888; font-size: 0.85rem;">No recent news available</div>';
+            }
+        } catch (error) {
+            console.error('News fetch error:', error);
+            document.getElementById('news-container').innerHTML = '<div style="color: #ff6699; font-size: 0.85rem;">News unavailable (API limit)</div>';
+        }
+    }
+
     // Initialize
     // Set Default to Today
     const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -499,5 +562,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initChart();
     fetchData();
+    fetchMarketNews(); // Load news on startup
     setupAutoRefresh(); // Start loop based on dropdown default
 });
