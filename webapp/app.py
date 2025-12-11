@@ -19,15 +19,6 @@ if not API_KEY:
 def analyze_trade_with_ai(market_data):
     """Use Gemini AI to analyze market data and provide trade recommendations"""
     
-    # DISABLED: Free quota exhausted
-    return {
-        'pin_recommendation': 'Quota Exhausted',
-        'trade_setup': 'Your Gemini API free quota is at 0. Wait for reset or upgrade at ai.google.dev',
-        'probability': 0,
-        'risk_reward': 'N/A',
-        'context': 'All manual features work perfectly! Use Entry Signals, Walls, and Strategy panel below.'
-    }
-    
     if not GEMINI_API_KEY:
         return {
             'pin_recommendation': 'AI Disabled',
@@ -53,6 +44,7 @@ CURRENT MARKET DATA:
 -Expected Move: ±${market_data.get('expected_move', 0):.2f}
 - Current Signal: {market_data.get('signal', {}).get('text', 'N/A')}
 - Volatility Regime: {market_data.get('signal', {}).get('regime', 'N/A')}
+- VIX: {market_data.get('vix', 'N/A')}
 
 TASK:
 Analyze this data and provide:
@@ -69,8 +61,10 @@ PROBABILITY: <number>%
 R/R: <ratio format like 1:3>
 CONTEXT: <brief explanation>"""
 
-        # Call Gemini API - using gemini-1.5-flash (higher free quota than 2.0)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        # Call Gemini API - using gemini-1.5-pro for high capability
+        # Or gemini-1.5-pro-exp-0827 / gemini-1.5-pro-002 if available
+        # Defaulting to stable gemini-1.5-pro
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
         headers = {'Content-Type': 'application/json'}
         payload = {
             "contents": [{
@@ -82,12 +76,20 @@ CONTEXT: <brief explanation>"""
             }
         }
         
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         
         print(f"Gemini API Response Status: {response.status_code}")
         
         if response.status_code != 200:
             print(f"Gemini API Error Response: {response.text}")
+            if response.status_code == 429:
+                return {
+                    'pin_recommendation': 'Quota Limit',
+                    'trade_setup': 'Gemini 1.5 Pro quota exceeded.',
+                    'probability': 0,
+                    'risk_reward': 'N/A',
+                    'context': 'Wait a minute or switch to Flash model.'
+                }
             raise Exception(f"Gemini API error: {response.status_code} - {response.text}")
         
         # Parse response
@@ -126,11 +128,11 @@ CONTEXT: <brief explanation>"""
     except Exception as e:
         print(f"AI Analysis error: {e}")
         return {
-            'pin_recommendation': 'API Key Issue',
-            'trade_setup': 'Gemini API returned 404 - Your API key may not have access to Gemini models. Try regenerating your key at aistudio.google.com',
+            'pin_recommendation': 'API Error',
+            'trade_setup': f'Error calling Gemini: {str(e)[:50]}...',
             'probability': 0,
             'risk_reward': 'N/A',
-            'context': 'Check terminal for detailed error. Verify API key has Gemini access enabled.'
+            'context': 'Check terminal for detailed error log.'
         }
 
 # ... (lines 1-20 unchanged) ...
