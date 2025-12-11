@@ -10,128 +10,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 API_KEY = os.getenv("TRADIER_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 if not API_KEY:
     API_KEY = "Clty9DpKMudoRXfh9vYKee9A09r0"
-
-# AI Analysis using Gemini API
-def analyze_trade_with_ai(market_data):
-    """Use Gemini AI to analyze market data and provide trade recommendations"""
-    
-    # DISABLED: Free quota exhausted
-    return {
-        'pin_recommendation': 'Quota Exhausted',
-        'trade_setup': 'Your Gemini API free quota is at 0. Wait for reset or upgrade at ai.google.dev',
-        'probability': 0,
-        'risk_reward': 'N/A',
-        'context': 'All manual features work perfectly! Use Entry Signals, Walls, and Strategy panel below.'
-    }
-    
-    if not GEMINI_API_KEY:
-        return {
-            'pin_recommendation': 'AI Disabled',
-            'trade_setup': 'Configure GEMINI_API_KEY in .env file',
-            'probability': 0,
-            'risk_reward': 'N/A',
-            'context': 'Gemini API key not found'
-        }
-    
-    try:
-        # Format market data for analysis
-        prompt = f"""You are an expert options trader analyzing 0DTE SPX Gamma Exposure (GEX) data.
-
-CURRENT MARKET DATA:
-- Ticker: {market_data.get('ticker', 'SPX')}
-- Current Price: ${market_data.get('price', 0):.2f}
-- Expiration: {market_data.get('expiry', 'N/A')}
-- Total GEX: ${market_data.get('total_gex', 0):.2f}B
-- Call Wall: {market_data.get('call_wall', 'N/A')}
-- Put Wall: {market_data.get('put_wall', 'N/A')}
-- Put/Call Ratio: {market_data.get('put_call_ratio', 0):.2f}
-- IV (ATM): {market_data.get('zero_dte_iv', 0):.1f}%
--Expected Move: ±${market_data.get('expected_move', 0):.2f}
-- Current Signal: {market_data.get('signal', {}).get('text', 'N/A')}
-- Volatility Regime: {market_data.get('signal', {}).get('regime', 'N/A')}
-
-TASK:
-Analyze this data and provide:
-1. PIN RECOMMENDATION: What strike(s) should I use as my short leg anchor? Explain why.
-2. TRADE SETUP: Specific trade recommendation (e.g., "Bull Put Spread: Sell 6820P / Buy 6810P")
-3. PROBABILITY: Your estimated probability of profit (0-100%)
-4. RISK/REWARD: Estimated R/R ratio and max profit/loss
-5. MARKET CONTEXT: Brief explanation of why this trade makes sense now
-
-Be specific with strike prices. Keep each section to 1-2 sentences max. Format as:
-PIN: <strikes and reasoning>
-TRADE: <specific setup>
-PROBABILITY: <number>%
-R/R: <ratio format like 1:3>
-CONTEXT: <brief explanation>"""
-
-        # Call Gemini API - using gemini-1.5-flash (higher free quota than 2.0)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        headers = {'Content-Type': 'application/json'}
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }],
-            "generationConfig": {
-                "temperature": 0.4,
-                "maxOutputTokens": 500
-            }
-        }
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        
-        print(f"Gemini API Response Status: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"Gemini API Error Response: {response.text}")
-            raise Exception(f"Gemini API error: {response.status_code} - {response.text}")
-        
-        # Parse response
-        result = response.json()
-        ai_text = result['candidates'][0]['content']['parts'][0]['text']
-        
-        # Extract sections
-        lines = ai_text.split('\n')
-        analysis = {
-            'pin_recommendation': '',
-            'trade_setup': '',
-            'probability': 0,
-            'risk_reward': '',
-            'context': ''
-        }
-        
-        for line in lines:
-            line = line.strip()
-            if line.startswith('PIN:'):
-                analysis['pin_recommendation'] = line.replace('PIN:', '').strip()
-            elif line.startswith('TRADE:'):
-                analysis['trade_setup'] = line.replace('TRADE:', '').strip()
-            elif line.startswith('PROBABILITY:'):
-                prob_str = line.replace('PROBABILITY:', '').strip().replace('%', '')
-                try:
-                    analysis['probability'] = int(prob_str.split()[0])
-                except:
-                    analysis['probability'] = 0
-            elif line.startswith('R/R:') or line.startswith('R:R:'):
-                analysis['risk_reward'] = line.split(':', 1)[1].strip() if ':' in line else line
-            elif line.startswith('CONTEXT:'):
-                analysis['context'] = line.replace('CONTEXT:', '').strip()
-        
-        return analysis
-        
-    except Exception as e:
-        print(f"AI Analysis error: {e}")
-        return {
-            'pin_recommendation': 'API Key Issue',
-            'trade_setup': 'Gemini API returned 404 - Your API key may not have access to Gemini models. Try regenerating your key at aistudio.google.com',
-            'probability': 0,
-            'risk_reward': 'N/A',
-            'context': 'Check terminal for detailed error. Verify API key has Gemini access enabled.'
-        }
 
 # ... (lines 1-20 unchanged) ...
 
@@ -268,18 +149,6 @@ def get_gex_data_json(ticker='SPX', target_date=None):
                 max_oi_strike = max(oi_by_strike, key=oi_by_strike.get)
     except Exception as e:
         print(f"Error calculating Max OI: {e}")
-
-    # --- PUT/CALL RATIO ---
-    put_call_ratio = 0
-    try:
-        total_put_oi = sum(o.get('open_interest', 0) for o in options if o.get('option_type') == 'put')
-        total_call_oi = sum(o.get('open_interest', 0) for o in options if o.get('option_type') == 'call')
-        
-        if total_call_oi > 0:
-            put_call_ratio = total_put_oi / total_call_oi
-            print(f"P/C Ratio: {put_call_ratio:.2f} (Put OI: {total_put_oi:,}, Call OI: {total_call_oi:,})")
-    except Exception as e:
-        print(f"Error calculating P/C Ratio: {e}")
 
     # --- STRATEGY GENERATION ---
     strategy = {
@@ -472,9 +341,8 @@ def get_gex_data_json(ticker='SPX', target_date=None):
         print(f"IV calc error: {e}")
 
     print("--- Done ---")
-    
-    # Prepare data for return
-    result_data = {
+
+    return {
         'ticker': ticker,
         'price': price,
         'expiry': expiry,
@@ -482,7 +350,6 @@ def get_gex_data_json(ticker='SPX', target_date=None):
         'call_wall': call_wall,
         'put_wall': put_wall,
         'max_oi': max_oi_strike,
-        'put_call_ratio': round(put_call_ratio, 2),
         'zero_dte_iv': round(zero_dte_iv, 2),
         'expected_move': round(expected_move, 2),
         'strategy': strategy,
@@ -490,16 +357,9 @@ def get_gex_data_json(ticker='SPX', target_date=None):
         'gex': chart_data,
         'oi': chart_oi,
         'volume': chart_vol,
-        'premium': strategy.get('premium'),
+        'premium': strategy.get('premium'), # Add direct access if needed, but it's in strategy
         'pop': strategy.get('pop')
     }
-    
-    # Add AI Analysis
-    print("Running AI analysis...")
-    ai_analysis = analyze_trade_with_ai(result_data)
-    result_data['ai_analysis'] = ai_analysis
-
-    return result_data
 
 # --- Routes ---
 @app.route('/')

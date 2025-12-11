@@ -20,6 +20,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let speechEnabled = false; // Disabled speech alerts
     let wallProximityThreshold = 10; // points
 
+    // Alert Toggle Switch - Load saved preference
+    const alertToggle = document.getElementById('alert-toggle');
+    if (alertToggle) {
+        // Restore saved preference (default to true if not set)
+        const savedAlertPref = localStorage.getItem('alertsEnabled');
+        if (savedAlertPref !== null) {
+            alertsEnabled = savedAlertPref === 'true';
+            alertToggle.checked = alertsEnabled;
+        }
+
+        alertToggle.addEventListener('change', function () {
+            alertsEnabled = this.checked;
+            localStorage.setItem('alertsEnabled', alertsEnabled); // Save preference
+            console.log('Alerts:', alertsEnabled ? 'ON' : 'OFF');
+            if (!alertsEnabled) {
+                dismissAlert(); // Dismiss any active alerts when turning off
+            }
+        });
+    }
+
     // Event Listener for Date Change
     // We remove the interval loop from main scope to control it better? 
     // Or just let the interval run. Interval hits fetchData, which reads input.
@@ -93,6 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function showTradeAlert(signal, ticker) {
         const banner = document.getElementById('trade-alert-banner');
         const message = document.getElementById('alert-message');
+
+        // Check if alerts are enabled
+        if (!alertsEnabled) {
+            dismissAlert();
+            return;
+        }
 
         // Only show for actionable signals
         if (!signal.includes('BUY') && !signal.includes('SELL')) {
