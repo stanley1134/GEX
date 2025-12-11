@@ -1,0 +1,263 @@
+:root {
+    --bg-color: #050505;
+    --card-bg: rgba(20, 20, 22, 0.7);
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent-green: #00ff9d;
+    --accent-red: #ff3366;
+    --accent-cyan: #00e5ff;
+    --grid-line: #333;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Roboto', sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header & Stats Bar */
+header {
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 15px 30px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 1px;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+}
+
+.stats-container {
+    display: flex;
+    gap: 30px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: 'Roboto Mono', monospace;
+    display: inline;
+}
+
+/* Main Content */
+main {
+    flex: 1;
+    padding: 15px;
+    /* Reduced vertical padding */
+    display: flex;
+    flex-direction: row;
+    /* Side-by-side layout */
+    gap: 15px;
+    position: relative;
+    min-height: 0;
+    /* CRITICAL: Allows flex child to shrink below content size */
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 300px;
+    /* Prevent shrinking */
+    overflow-y: auto;
+}
+
+.panel {
+    background: var(--card-bg);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container {
+    flex: 1;
+    /* Takes remaining width */
+    background: var(--card-bg);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 10px;
+    /* Reduced padding */
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    /* Ensure canvas works with flex */
+    flex-direction: column;
+    min-height: 0;
+    /* CRITICAL: Allows container to shrink */
+    overflow: hidden;
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Footer / Controls */
+footer {
+    padding: 10px 30px;
+    border-top: 1px solid #222;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #080808;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+#status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #444;
+    border-radius: 50%;
+    margin-right: 8px;
+    transition: background-color 0.3s;
+}
+
+.pulsing {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(0, 255, 157, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0);
+    }
+}
+
+.positive {
+    color: var(--accent-green);
+}
+
+.negative {
+    color: var(--accent-red);
+}
+
+/* === TRADE ALERT SYSTEM === */
+.trade-alert-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    z-index: 9999;
+    display: none;
+    animation: slideDown 0.5s ease-out, pulse 2s infinite;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.trade-alert-banner.buy {
+    background: linear-gradient(135deg, #00ff9d, #00cc7a);
+    color: #000;
+}
+
+.trade-alert-banner.sell {
+    background: linear-gradient(135deg, #ff3366, #cc0033);
+    color: #fff;
+}
+
+.trade-alert-banner .close-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.trade-alert-banner .close-btn:hover {
+    background: rgba(0, 0, 0, 0.5);
+    transform: translateY(-50%) scale(1.1);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 4px 40px rgba(255, 255, 255, 0.8);
+    }
+}
+
+.signal-highlight {
+    animation: signalPulse 1.5s ease-in-out infinite;
+    border-width: 2px !important;
+}
+
+@keyframes signalPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}

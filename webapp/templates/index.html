@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPX 0DTE GEX | Real-Time Gamma Exposure</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@500&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=36">
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=36"></script>
+</head>
+
+<body>
+    <!-- Trade Alert Banner -->
+    <div id="trade-alert-banner" class="trade-alert-banner">
+        <span id="alert-message"></span>
+        <button class="close-btn" onclick="dismissAlert()">×</button>
+    </div>
+
+    <header>
+        <h1><span id="display-ticker" style="color: #00e5ff;">SPX</span> 0DTE <span style="color:white">GEX</span>
+            Analyzer</h1>
+
+        <div class="stats-container">
+            <div class="stat-item">
+                <span class="stat-label">Ticker</span>
+                <input type="text" id="ticker-input" value="SPX"
+                    style="width: 60px; background: transparent; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px 5px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; text-transform: uppercase;">
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Spot Price</span>
+                <span class="stat-value" id="price">Loading...</span><span id="price-arrow"
+                    style="display: inline-block; font-size: 1.2rem; margin-left: 5px; vertical-align: middle;"></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Net GEX</span>
+                <span class="stat-value" id="total-gex">...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Expiration</span>
+                <input type="date" id="expiry-date"
+                    style="background: transparent; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px 5px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; color-scheme: dark;">
+                <span id="expiry" style="display: none;"></span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="panel">
+                <h3 style="margin: 0 0 10px 0; color: #00e5ff; font-size: 1rem; text-transform: uppercase;">Algorithmic
+                    Strategy</h3>
+                <div id="strategy-signal"
+                    style="font-weight: bold; margin-bottom: 8px; font-size: 1rem; padding: 4px; border-radius: 4px; border: 1px solid #444; text-align: center; display: none;">
+                    --</div>
+                <div id="strategy-name" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; color: #fff;">
+                    Wait...</div>
+                <div id="strategy-rationale" style="color: #aaa; font-size: 0.9rem; margin-bottom: 10px;">Analyzing GEX
+                    profile...</div>
+                <div id="strategy-legs"
+                    style="font-family: 'Roboto Mono', monospace; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border-left: 3px solid #00e5ff;">
+                    <!-- Legs go here -->
+                </div>
+
+                <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; font-size: 0.9rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: #aaa;">Est. Credit:</span>
+                        <span id="strategy-premium"
+                            style="color: #00ff9d; font-weight: bold; font-family: 'Roboto Mono';">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #aaa;">Win Chance:</span>
+                        <span id="strategy-pop"
+                            style="color: #00e5ff; font-weight: bold; font-family: 'Roboto Mono';">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin: 0 0 10px 0; color: #a0a0a0; font-size: 0.8rem; text-transform: uppercase;">Key Levels
+                </h3>
+                <div style="margin-bottom: 5px;">Call Wall: <span id="val-call-wall"
+                        style="color: #00ff9d; font-weight: bold;">--</span></div>
+                <div style="margin-bottom: 5px;">Put Wall: <span id="val-put-wall"
+                        style="color: #ff3366; font-weight: bold;">--</span></div>
+                <div>Max OI: <span id="val-max-oi" style="color: #bf00ff; font-weight: bold;">--</span></div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin: 0 0 10px 0; color: #a0a0a0; font-size: 0.8rem; text-transform: uppercase;">Market
+                    Stats</h3>
+                <div style="margin-bottom: 5px;">IV (ATM): <span id="val-iv"
+                        style="color: #ffcc00; font-weight: bold;">--%</span></div>
+                <div style="margin-bottom: 5px;">Exp. Move: <span id="val-move"
+                        style="color: #00ccff; font-weight: bold;">--</span></div>
+                <div style="margin-bottom: 5px;">P/C Ratio: <span id="val-pc-ratio"
+                        style="color: #eaeaea; font-weight: bold;">--</span></div>
+                <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">
+                    <div>Env: <span id="val-regime" style="color: #eaeaea;">--</span></div>
+                    <div id="val-regime-note"
+                        style="font-size: 0.8rem; color: #888; margin-top: 2px; font-style: italic;">--</div>
+                </div>
+            </div>        </aside>
+
+        <!-- Main Chart -->
+        <div class="chart-container" style="position: relative;">
+            <canvas id="gexChart"></canvas>
+            <!-- Custom HTML Spot Flag -->
+            <div id="spot-flag"
+                style="position: absolute; top: 15px; left: 0; background: #ff9900; color: #000; padding: 6px 10px; font-family: 'Roboto Mono', monospace; font-size: 13px; font-weight: bold; border-radius: 0 4px 4px 0; pointer-events: none; display: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); z-index: 100; border-left: 2px solid #cc7a00; white-space: nowrap;">
+                SPOT
+            </div>
+        </div>
+
+        <!-- Right Sidebar - AI Analysis -->
+        <aside class="sidebar" style="width: 320px; min-width: 320px;">
+            <!-- AI Analysis Panel -->
+            <div class="panel" style="background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1)); border: 1px solid #8a2be2;">
+                <h3 style="margin: 0 0 10px 0; color: #bf00ff; font-size: 1rem; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+                    <span>🤖</span> AI Trade Analysis
+                </h3>
+                
+                <div style="margin-bottom: 10px;">
+                    <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px;">PIN Recommendation</div>
+                    <div id="ai-pin" style="color: #00ff9d; font-weight: bold; font-size: 0.9rem; line-height: 1.4;">--</div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px;">Trade Setup</div>
+                    <div id="ai-trade" style="color: #00e5ff; font-family: 'Roboto Mono', monospace; font-size: 0.85rem; line-height: 1.4;">--</div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px;">Probability</div>
+                        <div id="ai-probability" style="color: #ffcc00; font-weight: bold; font-size: 1.1rem;">--%</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px;">R/R Ratio</div>
+                        <div id="ai-rr" style="color: #ff6699; font-weight: bold; font-size: 1.1rem;">--</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
+                    <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px;">Market Context</div>
+                    <div id="ai-context" style="color: #aaa; font-size: 0.85rem; line-height: 1.4; font-style: italic;">--</div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <div class="status">
+            <span id="status-dot"></span>
+            <span id="last-update">Waiting for data...</span>
+        </div>
+        <div>
+            Auto-refresh:
+            <select id="refresh-rate"
+                style="background: transparent; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px; font-family: 'Roboto Mono', monospace; font-size: 0.8rem; color-scheme: dark;">
+                <option value="5000">5s</option>
+                <option value="10000">10s</option>
+                <option value="15000">15s</option>
+                <option value="30000">30s</option>
+                <option value="60000" selected>60s</option>
+                <option value="0">Off</option>
+            </select>
+        </div>
+    </footer>
+</body>
+
+</html>
